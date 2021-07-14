@@ -1,4 +1,5 @@
 from calibrate import load_coefficients
+from stream_handler import get_stream
 import numpy as np
 import time
 import cv2
@@ -55,18 +56,19 @@ def augment(corners, ids, img, img_aug):
 
 def main():
     cap = cv2.VideoCapture(0)
+    st_cap = get_stream()
+
     camera_matrix, dist_matrix = load_coefficients()
     img_aug = cv2.imread('calibration/calibration1_undistorted.jpg')
-
     new_frame_time, prev_frame_time = 0, 0
-
+    
     while True:
         new_frame_time = time.time()
         success, frame = cap.read()
-        corners, ids, rejected = find_markers(frame, camera_matrix, dist_matrix)
-
+        corners, ids, rejected = find_markers(frame, camera_matrix, dist_matrix, draw=False)
         if len(corners) == 4:
-            frame = augment(corners, ids, frame, img_aug)
+            _, st_frame = st_cap.read()
+            frame = augment(corners, ids, frame, st_frame)
 
         fps = 1 / (new_frame_time - prev_frame_time)
         prev_frame_time = new_frame_time
@@ -74,7 +76,8 @@ def main():
         cv2.putText(frame, fps, (7, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (100, 255, 0), 2, cv2.LINE_AA)
 
         cv2.imshow('Image', frame)
-        cv2.waitKey(1)
+        if cv2.waitKey(20) & 0xFF == ord('d'):
+            break
 
 
 if __name__ == '__main__':
